@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Só estes e-mails (contas Google verificadas) podem ler e gravar.
+    function permitido() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in ['EMAIL_DO_PABLO@gmail.com', 'EMAIL_DA_FERNANDA@gmail.com'];
+    }
+    function texto(d, k, n) { return !(k in d) || (d[k] is string && d[k].size() <= n); }
+    function lancamentoValido(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id','type','amount','desc','cat','pay','date','place','who','due','inst','group','src','createdAt'])
+        && d.id == id && d.type in ['in', 'out']
+        && d.amount is number && d.amount >= 0 && d.amount < 100000000
+        && d.date is string && d.date.size() == 10
+        && texto(d, 'desc', 300) && texto(d, 'place', 300) && texto(d, 'cat', 120) && texto(d, 'pay', 120)
+        && texto(d, 'who', 120) && texto(d, 'due', 10) && texto(d, 'inst', 20) && texto(d, 'group', 40) && texto(d, 'src', 20);
+    }
+    match /spaces/casa/tx/{id} {
+      allow read, delete: if permitido();
+      allow create, update: if permitido() && lancamentoValido(id);
+    }
+    match /spaces/casa/meta/cfg {
+      allow read: if permitido();
+      allow write: if permitido() && request.resource.data.keys().hasOnly(['json', 'at'])
+        && request.resource.data.json is string && request.resource.data.json.size() < 900000;
+    }
+    // Todo o resto fica bloqueado.
+    match /{caminho=**} {
+      allow read, write: if false;
+    }
+  }
+}

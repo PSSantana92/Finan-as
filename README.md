@@ -21,3 +21,12 @@ Ao mudar arquivos, altere `VERSION` em `sw.js` para os aparelhos baixarem a nova
 
 ## Terceiros
 `vendor/anthropic.js`: Anthropic TypeScript SDK 1.6.0 (MIT). `vendor/pdf*.js`: PDF.js 3.11.174 (Apache 2.0).
+
+## Segurança e conta compartilhada
+
+- Com `firebase-config.js` preenchido, o app pede login com Google e guarda os dados no Firestore em `spaces/casa`.
+- Quem pode ler e gravar é definido só pelas regras do Firestore (modelo em `firestore.rules`; os e-mails reais ficam apenas no console do Firebase, nunca neste repositório).
+- As regras aceitam somente contas Google com e-mail verificado da lista, validam cada lançamento (campos, tipos e tamanhos) e bloqueiam qualquer outro caminho.
+- A página tem Content-Security-Policy: só roda scripts do próprio site e do login do Google.
+- A chave da API do Claude fica só no aparelho (localStorage) e nunca é enviada para o Firestore nem para o GitHub.
+- Ao sair da conta, o cache local do Firestore é apagado do aparelho.
